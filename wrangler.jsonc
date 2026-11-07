@@ -6,5 +6,14 @@
   "assets": {
     "directory": "./.output/public",
     "binding": "ASSETS"
+  },
+  "vars": {
+    // Valeurs publiques (clé publishable Supabase protégée par RLS, clé
+    // publique VAPID) : pas des secrets, safe à committer. Nitro (preset
+    // cloudflare_module) résout runtimeConfig.public.* depuis ces bindings
+    // au runtime du Worker, pas depuis le .env local utilisé au build.
+    "NUXT_PUBLIC_SUPABASE_URL": "https://ymhemjsufcwzglvgzjag.supabase.co",
+    "NUXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jq1gBimXayyWhyN3KqnQtw_jzRELz86",
+    "NUXT_PUBLIC_VAPID_PUBLIC_KEY": "BINg9eCXVWJXx-GzaBtB9sA9kHjUJMykBIpNtGayTlWmKS-6MSBfesTbT9DL-mX6LgGeuf8B373vejI0VHIu_5s"
   }
 }
