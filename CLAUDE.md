@@ -35,7 +35,7 @@ Deux boutons principaux, toujours visibles, en bas de l'écran (zone du pouce) :
 Règles :
 - Boutons larges (min. 56px de haut), lisibles en plein soleil, contraste AA minimum.
 - Feedback immédiat après tap : vibration (`navigator.vibrate`), toast de confirmation, mise à jour optimiste de la carte.
-- Anti-double tap : un signalement par utilisateur et par zone toutes les 10 minutes.
+- Anti-double tap : un signalement par utilisateur, par quartier (secteur si géolocalisé) et par statut toutes les 10 minutes — un utilisateur peut signaler une coupure et un retour de courant dans plusieurs quartiers différents, et changer de statut dans un même quartier sans attendre le cooldown de l'autre statut.
 - Si la géolocalisation est refusée, proposer de choisir le quartier dans une liste (fallback).
 
 ### Carte
@@ -78,7 +78,8 @@ geom geography(Polygon)
 -- reports
 id uuid primary key default gen_random_uuid()
 user_id uuid references auth.users
-zone_id text references zones
+zone_id text references zones          -- secteur/arrondissement affiché sur la carte
+quartier_id text                       -- quartier précis si connu (sélection manuelle), nul si géolocalisé
 status text check (status in ('outage','power'))
 location geography(Point)
 accuracy real

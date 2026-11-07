@@ -1,0 +1,10 @@
+project_id = "egortchi"
+
+[auth]
+# Signalement sans compte (cf. CLAUDE.md, Auth : anonyme par défaut). Ne vaut
+# que pour `supabase start` en local — sur le projet distant, s'active dans
+# le Dashboard : Authentication > Sign In / Providers > Allow anonymous sign-ins.
+enable_anonymous_sign_ins = true
+
+[functions.notify-zone-change]
+verify_jwt = false

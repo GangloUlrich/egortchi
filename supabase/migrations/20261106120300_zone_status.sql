@@ -114,7 +114,5 @@ create trigger reports_after_insert_recompute
 
 -- Sans nouveau signalement, une zone doit repasser en "inconnue" après
 -- 60 minutes : le trigger ci-dessus ne suffit pas (rien ne le déclenche en
--- l'absence d'insert), il faut donc une réévaluation périodique. Active
--- l'extension pg_cron sur le projet Supabase (Database > Extensions) puis
--- décommente :
--- select cron.schedule('recompute-zone-status', '*/5 * * * *', $$select public.recompute_all_zone_statuses();$$);
+-- l'absence d'insert), il faut donc une réévaluation périodique, planifiée
+-- via pg_cron dans 20261107150000_enable_pg_cron.sql.

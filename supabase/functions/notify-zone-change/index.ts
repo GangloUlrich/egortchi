@@ -36,23 +36,12 @@ interface WebhookPayload {
   old_record: ZoneStatusRow | null
 }
 
-const ZONE_NAMES: Record<string, string> = {
-  'cotonou-centre': 'Cotonou Centre',
-  fidjrosse: 'Fidjrossè',
-  akpakpa: 'Akpakpa',
-  cadjehoun: 'Cadjèhoun',
-  gbegamey: 'Gbégamey',
-  agla: 'Agla',
-  godomey: 'Godomey',
-  togba: 'Togba',
-  cococodji: 'Cococodji',
-  'abomey-calavi-centre': 'Abomey-Calavi Centre',
-  akassato: 'Akassato',
-  hevie: 'Hévié',
+async function getZoneName(zoneId: string): Promise<string> {
+  const { data } = await supabase.from('zones').select('name').eq('id', zoneId).maybeSingle()
+  return data?.name ?? zoneId
 }
 
-function buildMessage(zoneId: string, status: 'outage' | 'power') {
-  const name = ZONE_NAMES[zoneId] ?? zoneId
+function buildMessage(name: string, status: 'outage' | 'power') {
   return status === 'power'
     ? { title: '⚡ Le courant est revenu', body: `Le courant est revenu à ${name}.` }
     : { title: '🔌 Coupure signalée', body: `Une coupure est signalée à ${name}.` }
@@ -84,7 +73,8 @@ Deno.serve(async (req) => {
     if (error) throw error
 
     const cooldownCutoff = new Date(Date.now() - NOTIFICATION_COOLDOWN_MINUTES * 60_000).toISOString()
-    const message = buildMessage(record.zone_id, newStatus)
+    const zoneName = await getZoneName(record.zone_id)
+    const message = buildMessage(zoneName, newStatus)
 
     for (const sub of subscriptions ?? []) {
       const { data: recentLog } = await supabase

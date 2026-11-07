@@ -7,6 +7,10 @@ export default defineNuxtConfig({
 
   ssr: false,
 
+  nitro: {
+    preset: 'cloudflare_module',
+  },
+
   modules: ['@vite-pwa/nuxt'],
 
   css: ['~/assets/css/main.css'],
