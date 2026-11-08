@@ -35,3 +35,7 @@ body {
 .zone-icon--outage {
   background-color: #ef4444;
 }
+
+.zone-icon--mixed {
+  background-color: #f97316;
+}

@@ -15,37 +15,81 @@ function normalize(s: string) {
     .replace(/[̀-ͯ]/g, '')
 }
 
-const secteurNameById = computed(() => {
+const quartierNameById = computed(() => {
   const map = new Map<string, string>()
-  for (const zone of ZONES) map.set(zone.id, zone.name)
+  for (const quartier of QUARTIERS) map.set(quartier.id, quartier.name)
+  return map
+})
+
+// Noms de quartiers par secteur, uniquement pour matcher la recherche
+// (ex. taper "Ohe" doit retrouver le 4e Arrondissement).
+const quartierNamesBySecteur = computed(() => {
+  const map = new Map<string, string[]>()
+  for (const quartier of QUARTIERS) {
+    const names = map.get(quartier.secteurId) ?? []
+    names.push(quartier.name)
+    map.set(quartier.secteurId, names)
+  }
   return map
 })
 
 interface Row {
   id: string
   name: string
-  secteurName: string
   status: ZoneState
+  /** Quartiers confirmés en coupure (vide si signalements géolocalisés ou pas assez de signalements). */
+  outageQuartierNames: string[]
+  /** Quartiers confirmés avec le courant (vide si signalements géolocalisés ou pas assez de signalements). */
+  powerQuartierNames: string[]
+  updatedAt: string | null
 }
 
+function namesFor(ids: string[]) {
+  return ids.map((id) => quartierNameById.value.get(id)).filter((n): n is string => !!n)
+}
+
+// Une ligne par secteur : c'est le niveau auquel l'état est réellement
+// calculé (cf. zone_status côté backend). Lister un quartier par ligne
+// ferait croire que chaque quartier a été confirmé individuellement, alors
+// qu'un seul signalement suffit à faire basculer tout le secteur.
 const allRows = computed<Row[]>(() =>
-  QUARTIERS.map((quartier) => ({
-    id: quartier.id,
-    name: quartier.name,
-    secteurName: secteurNameById.value.get(quartier.secteurId) ?? '',
-    status: getStatus(quartier.secteurId).status,
-  })).sort((a, b) => a.name.localeCompare(b.name))
+  ZONES.map((zone) => {
+    const entry = getStatus(zone.id)
+    return {
+      id: zone.id,
+      name: zone.name,
+      status: entry.status,
+      outageQuartierNames: namesFor(entry.outageQuartierIds),
+      powerQuartierNames: namesFor(entry.powerQuartierIds),
+      updatedAt: entry.updatedAt,
+    }
+  }).sort((a, b) => a.name.localeCompare(b.name))
 )
 
-const outageRows = computed(() => allRows.value.filter((r) => r.status === 'outage'))
-const powerRows = computed(() => allRows.value.filter((r) => r.status === 'power'))
+// Un secteur 'mixed' a à la fois des quartiers en coupure et des quartiers
+// avec le courant : il apparaît dans les deux onglets, chacun ne montrant
+// que les quartiers concernés par cet onglet.
+const outageRows = computed(() => allRows.value.filter((r) => r.status === 'outage' || r.status === 'mixed'))
+const powerRows = computed(() => allRows.value.filter((r) => r.status === 'power' || r.status === 'mixed'))
 
 const visibleRows = computed(() => {
   const source = activeTab.value === 'outage' ? outageRows.value : powerRows.value
   const q = normalize(search.value.trim())
   if (!q) return source
-  return source.filter((row) => normalize(row.name).includes(q) || normalize(row.secteurName).includes(q))
+  return source.filter((row) => {
+    if (normalize(row.name).includes(q)) return true
+    const quartierNames = quartierNamesBySecteur.value.get(row.id) ?? []
+    return quartierNames.some((name) => normalize(name).includes(q))
+  })
 })
+
+function sinceLabel(updatedAt: string | null): string | null {
+  if (!updatedAt) return null
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(updatedAt).getTime()) / 60_000))
+  if (minutes < 1) return "à l'instant"
+  if (minutes === 1) return 'depuis 1 min'
+  return `depuis ${minutes} min`
+}
 
 function closeDialog() {
   open.value = false
@@ -115,7 +159,15 @@ function closeDialog() {
         >
           <div>
             <p class="text-sm text-slate-800">{{ row.name }}</p>
-            <p class="text-xs text-slate-400">{{ row.secteurName }}</p>
+            <p class="text-xs text-slate-400">
+              <span v-if="(activeTab === 'outage' ? row.outageQuartierNames : row.powerQuartierNames).length > 0">
+                {{ (activeTab === 'outage' ? row.outageQuartierNames : row.powerQuartierNames).join(', ') }}
+              </span>
+              <span v-if="(activeTab === 'outage' ? row.outageQuartierNames : row.powerQuartierNames).length > 0 && sinceLabel(row.updatedAt)">
+                ·
+              </span>
+              <span v-if="sinceLabel(row.updatedAt)">{{ sinceLabel(row.updatedAt) }}</span>
+            </p>
           </div>
           <span class="shrink-0 text-lg">{{ activeTab === 'outage' ? '🔌' : '⚡' }}</span>
         </div>

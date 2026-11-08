@@ -22,7 +22,7 @@ const supabase = createClient(supabaseUrl, serviceRoleKey)
 
 const NOTIFICATION_COOLDOWN_MINUTES = 15
 
-type ZoneState = 'outage' | 'power' | 'unknown'
+type ZoneState = 'outage' | 'power' | 'unknown' | 'mixed'
 
 interface ZoneStatusRow {
   zone_id: string
@@ -41,10 +41,10 @@ async function getZoneName(zoneId: string): Promise<string> {
   return data?.name ?? zoneId
 }
 
-function buildMessage(name: string, status: 'outage' | 'power') {
-  return status === 'power'
-    ? { title: '⚡ Le courant est revenu', body: `Le courant est revenu à ${name}.` }
-    : { title: '🔌 Coupure signalée', body: `Une coupure est signalée à ${name}.` }
+function buildMessage(name: string, status: 'outage' | 'power' | 'mixed') {
+  if (status === 'power') return { title: '⚡ Le courant est revenu', body: `Le courant est revenu à ${name}.` }
+  if (status === 'outage') return { title: '🔌 Coupure signalée', body: `Une coupure est signalée à ${name}.` }
+  return { title: '🔶 Coupure partielle', body: `${name} : coupure dans une partie du secteur, courant revenu ailleurs.` }
 }
 
 Deno.serve(async (req) => {
